@@ -28,22 +28,29 @@ export default function App() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  const getAuthErrorMessage = (error: unknown) => {
+    const typedError = error as AuthError;
+
+    switch (typedError.code) {
+      case 'auth/unauthorized-domain':
+        return 'This domain is not authorized in Firebase Google sign-in settings. Add your deployed domain to Firebase Authentication > Settings > Authorized domains.';
+      case 'auth/operation-not-supported-in-this-environment':
+        return 'Google sign-in is blocked in this browser environment. Please open the app in a regular browser window and try again.';
+      case 'auth/popup-closed-by-user':
+      case 'auth/cancelled-popup-request':
+        return 'Google sign-in was cancelled. Please click Continue with Google again.';
+      default:
+        return 'Google sign-in failed. Please try again in a moment.';
+    }
+  };
+
   useEffect(() => {
     const loadRedirectResult = async () => {
       try {
         await getRedirectResult(auth);
         setAuthError(null);
       } catch (error) {
-        const typedError = error as AuthError;
-        if (typedError.code === 'auth/unauthorized-domain') {
-          setAuthError('This domain is not authorized in Firebase Google sign-in settings. Add your deployed domain to Firebase Authentication > Settings > Authorized domains.');
-          return;
-        }
-        if (typedError.code === 'auth/operation-not-supported-in-this-environment') {
-          setAuthError('Google sign-in is blocked in this browser environment. Please open the app in a regular browser window and try again.');
-          return;
-        }
-        setAuthError('Google sign-in failed. Please try again.');
+        setAuthError(getAuthErrorMessage(error));
         console.error('Redirect login failed', error);
       }
     };
@@ -102,6 +109,12 @@ export default function App() {
   const handleLogin = async () => {
     setAuthError(null);
 
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      await signInWithRedirect(auth, googleProvider);
+      return;
+    }
+
     try {
       await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
       return;
@@ -110,20 +123,13 @@ export default function App() {
 
       if (
         typedError.code === 'auth/popup-blocked' ||
-        typedError.code === 'auth/popup-closed-by-user' ||
-        typedError.code === 'auth/cancelled-popup-request' ||
         typedError.code === 'auth/operation-not-supported-in-this-environment'
       ) {
         await signInWithRedirect(auth, googleProvider);
         return;
       }
 
-      if (typedError.code === 'auth/unauthorized-domain') {
-        setAuthError('This domain is not authorized in Firebase Google sign-in settings. Add your deployed domain to Firebase Authentication > Settings > Authorized domains.');
-        return;
-      }
-
-      setAuthError('Google sign-in failed. Please try again in a moment.');
+      setAuthError(getAuthErrorMessage(error));
       console.error('Login failed', error);
     }
   };

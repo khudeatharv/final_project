@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from './firebase';
-import { onAuthStateChanged, signInWithPopup, signOut, User, signInWithRedirect } from 'firebase/auth';
+import {
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+  User,
+  signInWithRedirect,
+  getRedirectResult,
+  AuthError,
+} from 'firebase/auth';
 import { doc, onSnapshot, setDoc, getDoc, Unsubscribe } from 'firebase/firestore';
 import { UserProfile } from './types';
 import Dashboard from './components/Dashboard';
@@ -17,8 +25,43 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'planner' | 'note'>('dashboard');
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const preferredAuthOrigin = import.meta.env.VITE_AUTH_ORIGIN;
+
+  const normalizeOrigin = (value: string) => value.trim().replace(/\/$/, '');
+  const isVercelDomain = (hostname: string) => hostname.endsWith('.vercel.app');
+
+  const getAuthErrorMessage = (error: unknown) => {
+    const typedError = error as AuthError;
+    const currentDomain = window.location.hostname;
+
+    switch (typedError.code) {
+      case 'auth/unauthorized-domain':
+        return `Google sign-in is blocked because ${currentDomain} is not authorized in Firebase. Add this domain in Firebase Console > Authentication > Settings > Authorized domains.`;
+      case 'auth/operation-not-supported-in-this-environment':
+        return 'Google sign-in is blocked in this browser environment. Please open the app in a regular browser window and try again.';
+      case 'auth/popup-closed-by-user':
+      case 'auth/cancelled-popup-request':
+        return 'Google sign-in was cancelled. Please click Continue with Google again.';
+      default:
+        return 'Google sign-in failed. Please try again in a moment.';
+    }
+  };
 
   useEffect(() => {
+    const loadRedirectResult = async () => {
+      try {
+        await getRedirectResult(auth);
+        setAuthError(null);
+      } catch (error) {
+        setAuthError(getAuthErrorMessage(error));
+        console.error('Redirect login failed', error);
+      }
+    };
+
+    loadRedirectResult();
+
     let unsubscribeProfile: Unsubscribe | null = null;
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -69,13 +112,48 @@ export default function App() {
   }, []);
 
   const handleLogin = async () => {
+    setAuthError(null);
+
+    const currentHostname = window.location.hostname;
+    const currentOrigin = normalizeOrigin(window.location.origin);
+
+    if (preferredAuthOrigin) {
+      try {
+        const targetOrigin = normalizeOrigin(preferredAuthOrigin);
+        const targetHostname = new URL(targetOrigin).hostname;
+
+        if (isVercelDomain(currentHostname) && currentHostname !== targetHostname && currentOrigin !== targetOrigin) {
+          const nextPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+          window.location.href = `${targetOrigin}${nextPath}`;
+          return;
+        }
+      } catch {
+        setAuthError('VITE_AUTH_ORIGIN is invalid. Set it to a full URL like https://your-production-domain.vercel.app.');
+        return;
+      }
+    }
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      await signInWithRedirect(auth, googleProvider);
+      return;
+    }
+
     try {
       await signInWithPopup(auth, googleProvider);
+      return;
     } catch (error) {
-      if (window.innerWidth < 768) {
+      const typedError = error as AuthError;
+
+      if (
+        typedError.code === 'auth/popup-blocked' ||
+        typedError.code === 'auth/operation-not-supported-in-this-environment'
+      ) {
         await signInWithRedirect(auth, googleProvider);
         return;
       }
+
+      setAuthError(getAuthErrorMessage(error));
       console.error('Login failed', error);
     }
   };
@@ -94,7 +172,7 @@ export default function App() {
   }
 
   if (!user) {
-    return <Auth onLogin={handleLogin} />;
+    return <Auth onLogin={handleLogin} errorMessage={authError} />;
   }
 
   const handleNavigate = (tab: 'dashboard' | 'planner' | 'note') => {

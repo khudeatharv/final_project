@@ -7,7 +7,6 @@ import {
   User,
   signInWithRedirect,
   getRedirectResult,
-  browserPopupRedirectResolver,
   AuthError,
 } from 'firebase/auth';
 import { doc, onSnapshot, setDoc, getDoc, Unsubscribe } from 'firebase/firestore';
@@ -132,7 +131,7 @@ export default function App() {
     }
 
     try {
-      await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
+      await signInWithPopup(auth, googleProvider);
       return;
     } catch (error) {
       const typedError = error as AuthError;

@@ -1,0 +1,106 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {userId}
+// Fields:
+//   - uid: string (required)
+//   - email: string (required)
+//   - displayName: string (optional)
+//   - photoURL: string (optional)
+//   - plan: string (required, ['free', 'pro'])
+//   - pdfUploadsCount: number (required)
+//   - quizCount: number (required)
+//   - lastResetDate: string (required, ISO date)
+//
+// Collection: studyNotes
+// Document ID: {noteId}
+// Fields:
+//   - uid: string (required) - Owner ID
+//   - title: string (required)
+//   - content: string (required)
+//   - createdAt: timestamp (required)
+//
+// Collection: quizzes
+// Document ID: {quizId}
+// Fields:
+//   - uid: string (required) - Owner ID
+//   - noteId: string (required)
+//   - content: string (required)
+//   - createdAt: timestamp (required)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "khudeatharv@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'plan', 'pdfUploadsCount', 'quizCount', 'lastResetDate']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.plan in ['free', 'pro'] &&
+             data.pdfUploadsCount is number &&
+             data.quizCount is number &&
+             data.lastResetDate is string;
+    }
+
+    function isValidNote(data) {
+      return data.keys().hasAll(['uid', 'title', 'content', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.title is string && data.title.size() < 200 &&
+             data.content is string && data.content.size() < 1000000 &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidQuiz(data) {
+      return data.keys().hasAll(['uid', 'noteId', 'content', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.noteId is string &&
+             data.content is string && data.content.size() < 100000 &&
+             data.createdAt is timestamp;
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.plan == 'free';
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.plan == resource.data.plan || isAdmin());
+    }
+
+    match /studyNotes/{noteId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidNote(request.resource.data);
+      allow update: if isDocOwner() && isValidNote(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /quizzes/{quizId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidQuiz(request.resource.data);
+      allow update: if isDocOwner() && isValidQuiz(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+  }
+}

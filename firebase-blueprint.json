@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "User profile and subscription status",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "plan": { "type": "string", "enum": ["free", "pro"] },
+        "pdfUploadsCount": { "type": "number" },
+        "quizCount": { "type": "number" },
+        "lastResetDate": { "type": "string", "format": "date" }
+      },
+      "required": ["uid", "email", "plan"]
+    },
+    "studyNotes": {
+      "title": "Study Note",
+      "description": "Extracted text and metadata from uploaded PDFs",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "title", "content", "createdAt"]
+    },
+    "quizzes": {
+      "title": "Quiz",
+      "description": "Generated quizzes for study notes",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "noteId": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "noteId", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User profiles"
+    },
+    "/studyNotes/{noteId}": {
+      "schema": "studyNotes",
+      "description": "Study notes collection"
+    },
+    "/quizzes/{quizId}": {
+      "schema": "quizzes",
+      "description": "Generated quizzes"
+    }
+  }
+}

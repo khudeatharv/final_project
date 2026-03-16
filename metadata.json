@@ -1,0 +1,5 @@
+{
+  "name": "StudyFlow AI",
+  "description": "An AI-powered study assistant for summarizing notes, generating quizzes, and creating study plans.",
+  "requestFramePermissions": []
+}

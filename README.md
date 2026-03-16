@@ -54,6 +54,15 @@ How to get values:
 
 After this setup, any commit merged/pushed to `main` in GitHub will automatically deploy to your Vercel production site.
 
+
+### Google Sign-in on Vercel Preview URLs
+Firebase Google auth requires the **exact current hostname** to be in Authorized Domains. Vercel preview URLs change frequently, so Google sign-in can fail there even if production works.
+
+To make sign-in reliable:
+1. Add your stable production domain in Firebase Authorized Domains.
+2. Set `VITE_AUTH_ORIGIN` in Vercel to that same stable domain.
+3. Redeploy. If a user opens a preview URL and clicks Google sign-in, the app will forward them to the stable auth origin before starting login.
+
 ## Required Environment Variables
 Set these in **Vercel Project Settings → Environment Variables**:
 
@@ -63,5 +72,7 @@ Set these in **Vercel Project Settings → Environment Variables**:
 
 Optional:
 - `VITE_STRIPE_PUBLISHABLE_KEY` (client-side Stripe usage)
+
+- `VITE_AUTH_ORIGIN` (recommended for Vercel preview URLs, e.g. `https://your-production-domain.vercel.app`)
 
 Firebase configuration is currently sourced from `firebase-applet-config.json`.

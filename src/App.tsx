@@ -28,13 +28,17 @@ export default function App() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  const preferredAuthOrigin = import.meta.env.VITE_AUTH_ORIGIN;
+
+  const normalizeOrigin = (value: string) => value.trim().replace(/\/$/, '');
+
   const getAuthErrorMessage = (error: unknown) => {
     const typedError = error as AuthError;
     const currentDomain = window.location.hostname;
 
     switch (typedError.code) {
       case 'auth/unauthorized-domain':
-        return `Google sign-in is blocked because ${currentDomain} is not authorized in Firebase. Go to Firebase Console > Authentication > Settings > Authorized domains and add: ${currentDomain}`;
+        return `Google sign-in is blocked because ${currentDomain} is not authorized in Firebase. Add this domain in Firebase Console > Authentication > Settings > Authorized domains. If you are on a Vercel preview URL, set VITE_AUTH_ORIGIN to your stable production domain and retry from there.`;
       case 'auth/operation-not-supported-in-this-environment':
         return 'Google sign-in is blocked in this browser environment. Please open the app in a regular browser window and try again.';
       case 'auth/popup-closed-by-user':
@@ -109,6 +113,17 @@ export default function App() {
 
   const handleLogin = async () => {
     setAuthError(null);
+
+    if (preferredAuthOrigin) {
+      const currentOrigin = normalizeOrigin(window.location.origin);
+      const targetOrigin = normalizeOrigin(preferredAuthOrigin);
+
+      if (currentOrigin !== targetOrigin) {
+        const nextPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        window.location.href = `${targetOrigin}${nextPath}`;
+        return;
+      }
+    }
 
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (isMobile) {

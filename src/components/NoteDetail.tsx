@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { StudyNote } from '../types';
 import { summarizeNote, generateQuiz, generateFlashcards } from '../services/gemini';
-import { ArrowLeft, BookOpen, Brain, ListChecks, Layers, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, BookOpen, Brain, ListChecks, Layers, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 
@@ -49,9 +49,9 @@ export default function NoteDetail({ noteId, onBack }: NoteDetailProps) {
   // Auto-generate summary on first load
   useEffect(() => {
     if (note && !content && !loading) {
-      handleGenerate('summary');
+      void handleGenerate('summary');
     }
-  }, [note]);
+  }, [note, content, loading]);
 
   if (!note) return null;
 
@@ -73,7 +73,7 @@ export default function NoteDetail({ noteId, onBack }: NoteDetailProps) {
       </div>
 
       {/* Tools Navigation */}
-      <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit">
+      <div className="flex w-full flex-wrap gap-2 rounded-2xl bg-gray-100 p-1 sm:w-fit">
         <button
           onClick={() => handleGenerate('summary')}
           className={cn(
@@ -107,7 +107,7 @@ export default function NoteDetail({ noteId, onBack }: NoteDetailProps) {
       </div>
 
       {/* Content Area */}
-      <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm min-h-[500px] relative overflow-hidden">
+      <div className="bg-white rounded-[24px] sm:rounded-[32px] border border-gray-100 shadow-sm min-h-[500px] relative overflow-hidden">
         {loading ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-10">
             <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center mb-4 animate-bounce">
@@ -117,7 +117,7 @@ export default function NoteDetail({ noteId, onBack }: NoteDetailProps) {
           </div>
         ) : null}
 
-        <div className="p-10 prose prose-indigo max-w-none">
+        <div className="prose prose-indigo max-w-none p-4 sm:p-10">
           {content ? (
             <ReactMarkdown>{content}</ReactMarkdown>
           ) : (

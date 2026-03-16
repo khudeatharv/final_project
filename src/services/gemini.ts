@@ -1,47 +1,38 @@
-import { GoogleGenAI, Type } from "@google/genai";
+interface AiResponse {
+  text?: string;
+  error?: string;
+}
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+async function callAi(payload: Record<string, unknown>): Promise<string> {
+  const response = await fetch('/api/ai', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = (await response.json()) as AiResponse;
+
+  if (!response.ok) {
+    throw new Error(data.error || 'AI request failed');
+  }
+
+  return data.text || '';
+}
 
 export async function summarizeNote(text: string) {
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `Summarize these study notes concisely. Use markdown for formatting:\n\n${text}`,
-  });
-  return response.text;
+  return callAi({ type: 'summary', text });
 }
 
 export async function generateQuiz(text: string) {
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `Create 5 multiple choice questions from the following text. 
-    Format the output as a clean markdown list with options A, B, C, D and indicate the correct answer at the end of each question.
-    
-    Text:
-    ${text}`,
-  });
-  return response.text;
+  return callAi({ type: 'quiz', text });
 }
 
 export async function generateFlashcards(text: string) {
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `Create 10 flashcards from the following text. 
-    Format each flashcard as:
-    Q: [Question]
-    A: [Answer]
-    ---
-    
-    Text:
-    ${text}`,
-  });
-  return response.text;
+  return callAi({ type: 'flashcards', text });
 }
 
 export async function generateStudyPlan(topic: string, days: number) {
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `Create a detailed ${days}-day study plan for the topic: "${topic}". 
-    Include daily goals, key concepts to cover, and recommended study techniques. Use markdown.`,
-  });
-  return response.text;
+  return callAi({ type: 'study-plan', topic, days });
 }

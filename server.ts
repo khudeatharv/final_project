@@ -3,10 +3,12 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import Stripe from "stripe";
 import dotenv from "dotenv";
+import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+const gemini = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
 
 async function startServer() {
   const app = express();
@@ -54,6 +56,45 @@ async function startServer() {
       res.json({ url: session.url });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai", async (req, res) => {
+    if (!gemini) {
+      return res.status(500).json({ error: "Gemini not configured" });
+    }
+
+    const { type, text, topic, days } = req.body as {
+      type?: "summary" | "quiz" | "flashcards" | "study-plan";
+      text?: string;
+      topic?: string;
+      days?: number;
+    };
+
+    try {
+      const prompts = {
+        summary: `Summarize these study notes concisely. Use markdown for formatting:\n\n${text ?? ""}`,
+        quiz: `Create 5 multiple choice questions from the following text.\nFormat the output as a clean markdown list with options A, B, C, D and indicate the correct answer at the end of each question.\n\nText:\n${text ?? ""}`,
+        flashcards: `Create 10 flashcards from the following text.\nFormat each flashcard as:\nQ: [Question]\nA: [Answer]\n---\n\nText:\n${text ?? ""}`,
+        "study-plan": `Create a detailed ${days ?? 7}-day study plan for the topic: "${topic ?? ""}". Include daily goals, key concepts to cover, and recommended study techniques. Use markdown.`,
+      } as const;
+
+      if (!type || !(type in prompts)) {
+        return res.status(400).json({ error: "Invalid AI request type" });
+      }
+
+      if ((type === "study-plan" && !topic) || (type !== "study-plan" && !text)) {
+        return res.status(400).json({ error: "Missing required payload" });
+      }
+
+      const response = await gemini.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompts[type],
+      });
+
+      return res.json({ text: response.text ?? "" });
+    } catch (error: any) {
+      return res.status(500).json({ error: error?.message || "AI request failed" });
     }
   });
 

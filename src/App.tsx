@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from './firebase';
-import { onAuthStateChanged, signInWithPopup, signOut, User } from 'firebase/auth';
-import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signInWithPopup, signOut, User, signInWithRedirect } from 'firebase/auth';
+import { doc, onSnapshot, setDoc, getDoc, Unsubscribe } from 'firebase/firestore';
 import { UserProfile } from './types';
 import Dashboard from './components/Dashboard';
 import Auth from './components/Auth';
 import NoteDetail from './components/NoteDetail';
 import StudyPlanner from './components/StudyPlanner';
-import { BookOpen, LayoutDashboard, Calendar, LogOut, Sparkles, Crown } from 'lucide-react';
+import { LayoutDashboard, Calendar, LogOut, Sparkles, Crown, Menu, X } from 'lucide-react';
 import { cn } from './lib/utils';
 
 export default function App() {
@@ -16,20 +16,29 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'planner' | 'note'>('dashboard');
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
+    let unsubscribeProfile: Unsubscribe | null = null;
+
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
+
+      if (currentUser) {
+        const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
-        
+
         if (!userDoc.exists()) {
           const newProfile: UserProfile = {
-            uid: user.uid,
-            email: user.email || '',
-            displayName: user.displayName || '',
-            photoURL: user.photoURL || '',
+            uid: currentUser.uid,
+            email: currentUser.email || '',
+            displayName: currentUser.displayName || '',
+            photoURL: currentUser.photoURL || '',
             plan: 'free',
             pdfUploadsCount: 0,
             quizCount: 0,
@@ -37,25 +46,36 @@ export default function App() {
           };
           await setDoc(userDocRef, newProfile);
           setProfile(newProfile);
-        } else {
-          // Sync profile
-          onSnapshot(userDocRef, (snapshot) => {
-            setProfile(snapshot.data() as UserProfile);
-          }, (error) => handleFirestoreError(error, OperationType.GET, 'users'));
         }
+
+        unsubscribeProfile = onSnapshot(
+          userDocRef,
+          (snapshot) => {
+            if (snapshot.exists()) setProfile(snapshot.data() as UserProfile);
+          },
+          (error) => handleFirestoreError(error, OperationType.GET, 'users')
+        );
       } else {
         setProfile(null);
       }
+
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
 
   const handleLogin = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
+      if (window.innerWidth < 768) {
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
       console.error('Login failed', error);
     }
   };
@@ -77,33 +97,55 @@ export default function App() {
     return <Auth onLogin={handleLogin} />;
   }
 
+  const handleNavigate = (tab: 'dashboard' | 'planner' | 'note') => {
+    setActiveTab(tab);
+    if (tab !== 'note') setSelectedNoteId(null);
+    setMobileNavOpen(false);
+  };
+
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-6 flex items-center gap-3">
+    <div className="min-h-screen bg-[#f5f5f5] lg:flex">
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 lg:hidden">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <h1 className="font-bold text-lg tracking-tight text-gray-900">StudyFlow</h1>
+        </div>
+        <button onClick={() => setMobileNavOpen((v) => !v)} className="rounded-lg p-2 text-gray-700 hover:bg-gray-100">
+          {mobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
+
+      <aside
+        className={cn(
+          'border-r border-gray-200 bg-white lg:flex lg:w-64 lg:flex-col',
+          mobileNavOpen ? 'block' : 'hidden lg:block'
+        )}
+      >
+        <div className="hidden p-6 lg:flex lg:items-center lg:gap-3">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <h1 className="font-bold text-xl tracking-tight text-gray-900">StudyFlow</h1>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1">
+        <nav className="flex-1 space-y-1 px-4 py-4 lg:py-0">
           <button
-            onClick={() => { setActiveTab('dashboard'); setSelectedNoteId(null); }}
+            onClick={() => handleNavigate('dashboard')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors",
-              activeTab === 'dashboard' ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+              activeTab === 'dashboard' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
             )}
           >
             <LayoutDashboard className="w-4 h-4" />
             Dashboard
           </button>
           <button
-            onClick={() => { setActiveTab('planner'); setSelectedNoteId(null); }}
+            onClick={() => handleNavigate('planner')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors",
-              activeTab === 'planner' ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+              activeTab === 'planner' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
             )}
           >
             <Calendar className="w-4 h-4" />
@@ -111,7 +153,7 @@ export default function App() {
           </button>
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
+        <div className="border-t border-gray-100 p-4">
           <div className="bg-gray-50 rounded-2xl p-4 mb-4">
             <div className="flex items-center gap-3 mb-2">
               <img src={user.photoURL || ''} className="w-8 h-8 rounded-full border border-white shadow-sm" alt="" />
@@ -121,8 +163,10 @@ export default function App() {
               </div>
             </div>
             {profile?.plan === 'free' && (
-              <button 
-                onClick={() => { /* Handle Upgrade */ }}
+              <button
+                onClick={() => {
+                  /* Handle Upgrade */
+                }}
                 className="w-full mt-2 py-1.5 bg-indigo-600 text-white text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-700 transition-colors"
               >
                 <Crown className="w-3 h-3" />
@@ -140,20 +184,26 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto p-8">
+        <div className="mx-auto max-w-5xl p-4 sm:p-6 lg:p-8">
           {activeTab === 'dashboard' && (
-            <Dashboard 
-              profile={profile} 
-              onViewNote={(id) => { setSelectedNoteId(id); setActiveTab('note'); }} 
+            <Dashboard
+              profile={profile}
+              onViewNote={(id) => {
+                setSelectedNoteId(id);
+                setActiveTab('note');
+                setMobileNavOpen(false);
+              }}
             />
           )}
           {activeTab === 'planner' && <StudyPlanner profile={profile} />}
           {activeTab === 'note' && selectedNoteId && (
-            <NoteDetail 
-              noteId={selectedNoteId} 
-              onBack={() => { setActiveTab('dashboard'); setSelectedNoteId(null); }} 
+            <NoteDetail
+              noteId={selectedNoteId}
+              onBack={() => {
+                setActiveTab('dashboard');
+                setSelectedNoteId(null);
+              }}
             />
           )}
         </div>

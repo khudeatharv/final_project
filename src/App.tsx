@@ -30,6 +30,7 @@ export default function App() {
   const preferredAuthOrigin = import.meta.env.VITE_AUTH_ORIGIN;
 
   const normalizeOrigin = (value: string) => value.trim().replace(/\/$/, '');
+  const isVercelDomain = (hostname: string) => hostname.endsWith('.vercel.app');
 
   const getAuthErrorMessage = (error: unknown) => {
     const typedError = error as AuthError;
@@ -37,7 +38,7 @@ export default function App() {
 
     switch (typedError.code) {
       case 'auth/unauthorized-domain':
-        return `Google sign-in is blocked because ${currentDomain} is not authorized in Firebase. Add this domain in Firebase Console > Authentication > Settings > Authorized domains. If you are on a Vercel preview URL, set VITE_AUTH_ORIGIN to your stable production domain and retry from there.`;
+        return `Google sign-in is blocked because ${currentDomain} is not authorized in Firebase. Add this domain in Firebase Console > Authentication > Settings > Authorized domains.`;
       case 'auth/operation-not-supported-in-this-environment':
         return 'Google sign-in is blocked in this browser environment. Please open the app in a regular browser window and try again.';
       case 'auth/popup-closed-by-user':
@@ -113,13 +114,21 @@ export default function App() {
   const handleLogin = async () => {
     setAuthError(null);
 
-    if (preferredAuthOrigin) {
-      const currentOrigin = normalizeOrigin(window.location.origin);
-      const targetOrigin = normalizeOrigin(preferredAuthOrigin);
+    const currentHostname = window.location.hostname;
+    const currentOrigin = normalizeOrigin(window.location.origin);
 
-      if (currentOrigin !== targetOrigin) {
-        const nextPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-        window.location.href = `${targetOrigin}${nextPath}`;
+    if (preferredAuthOrigin) {
+      try {
+        const targetOrigin = normalizeOrigin(preferredAuthOrigin);
+        const targetHostname = new URL(targetOrigin).hostname;
+
+        if (isVercelDomain(currentHostname) && currentHostname !== targetHostname && currentOrigin !== targetOrigin) {
+          const nextPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+          window.location.href = `${targetOrigin}${nextPath}`;
+          return;
+        }
+      } catch {
+        setAuthError('VITE_AUTH_ORIGIN is invalid. Set it to a full URL like https://your-production-domain.vercel.app.');
         return;
       }
     }

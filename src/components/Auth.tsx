@@ -3,9 +3,10 @@ import { Sparkles } from 'lucide-react';
 
 interface AuthProps {
   onLogin: () => void;
+  errorMessage?: string | null;
 }
 
-export default function Auth({ onLogin }: AuthProps) {
+export default function Auth({ onLogin, errorMessage }: AuthProps) {
   return (
     <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-[24px] sm:rounded-[32px] p-6 sm:p-12 shadow-sm border border-gray-100 flex flex-col items-center text-center">
@@ -25,6 +26,12 @@ export default function Auth({ onLogin }: AuthProps) {
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="" />
           Continue with Google
         </button>
+
+        {errorMessage && (
+          <p className="mt-4 w-full rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-left text-xs font-medium text-red-700">
+            {errorMessage}
+          </p>
+        )}
 
         <div className="mt-8 pt-8 border-t border-gray-50 w-full">
           <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Trusted by 10,000+ Students</p>

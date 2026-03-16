@@ -3,7 +3,7 @@ import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { UserProfile, StudyNote } from '../types';
 import { extractTextFromPdf } from '../services/pdf';
-import { FileUp, FileText, Clock, Plus, Search, Loader2, AlertCircle } from 'lucide-react';
+import { FileUp, FileText, Clock, Plus, Search, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface DashboardProps {
@@ -78,7 +78,7 @@ export default function Dashboard({ profile, onViewNote }: DashboardProps) {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Your Library</h2>
           <p className="text-gray-500 mt-1">Manage and study your uploaded notes.</p>
@@ -95,7 +95,7 @@ export default function Dashboard({ profile, onViewNote }: DashboardProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="bg-white p-6 rounded-[24px] border border-gray-100 shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Notes</p>
           <p className="text-3xl font-bold text-gray-900">{notes.length}</p>
@@ -146,7 +146,7 @@ export default function Dashboard({ profile, onViewNote }: DashboardProps) {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-[32px] border border-dashed border-gray-200 p-20 flex flex-col items-center text-center">
+        <div className="bg-white rounded-[32px] border border-dashed border-gray-200 p-8 sm:p-20 flex flex-col items-center text-center">
           <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
             <FileUp className="w-10 h-10 text-gray-300" />
           </div>

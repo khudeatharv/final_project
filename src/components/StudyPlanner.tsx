@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateStudyPlan } from '../services/gemini';
 import { UserProfile } from '../types';
-import { Calendar, Sparkles, Loader2, Send } from 'lucide-react';
+import { Calendar, Sparkles, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 
@@ -43,7 +43,7 @@ export default function StudyPlanner({ profile }: StudyPlannerProps) {
         <p className="text-gray-500 mt-1">Generate a personalized roadmap for any subject.</p>
       </div>
 
-      <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm space-y-6">
+      <div className="bg-white p-4 sm:p-8 rounded-[24px] sm:rounded-[32px] border border-gray-100 shadow-sm space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Subject or Topic</label>
@@ -84,11 +84,11 @@ export default function StudyPlanner({ profile }: StudyPlannerProps) {
       </div>
 
       {plan ? (
-        <div className="bg-white p-10 rounded-[32px] border border-gray-100 shadow-sm prose prose-indigo max-w-none">
+        <div className="bg-white p-4 sm:p-10 rounded-[24px] sm:rounded-[32px] border border-gray-100 shadow-sm prose prose-indigo max-w-none">
           <ReactMarkdown>{plan}</ReactMarkdown>
         </div>
       ) : (
-        <div className="bg-indigo-50/50 rounded-[32px] border border-dashed border-indigo-100 p-20 flex flex-col items-center text-center">
+        <div className="bg-indigo-50/50 rounded-[24px] sm:rounded-[32px] border border-dashed border-indigo-100 p-8 sm:p-20 flex flex-col items-center text-center">
           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm">
             <Calendar className="w-10 h-10 text-indigo-200" />
           </div>

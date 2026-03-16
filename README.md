@@ -1,20 +1,50 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# StudyFlow AI (Vite + React + Firebase + Vercel Functions)
 
-# Run and deploy your AI Studio app
+## Project Stack
+- Frontend: Vite + React + TypeScript + Tailwind CSS
+- Auth/DB: Firebase Auth + Firestore
+- AI API: Gemini (server-side via Vercel Function)
+- Billing API: Stripe (server-side via Vercel Function)
 
-This contains everything you need to run your app locally.
+## Local Development
 
-View your app in AI Studio: https://ai.studio/apps/12e885b9-6f24-4212-bdcb-c84bb548c1d9
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
+Prerequisites: Node.js 20+
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+   ```bash
+   npm install
+   ```
+2. Create `.env.local` from `.env.example` and set values.
+3. Start frontend dev server:
+   ```bash
+   npm run dev
+   ```
+
+> Note: `/api/*` endpoints are Vercel Functions. For local full-stack parity, use `vercel dev`.
+
+## Build
+```bash
+npm run build
+```
+
+Output directory: `dist`
+
+## Vercel Deployment
+- Framework preset: **Vite**
+- Build command: `npm run build`
+- Output directory: `dist`
+- Install command: `npm install`
+
+`vercel.json` includes SPA fallback routing while preserving API/filesystem routes.
+
+## Required Environment Variables
+Set these in **Vercel Project Settings → Environment Variables**:
+
+- `GEMINI_API_KEY` (required, server-side AI endpoint)
+- `STRIPE_SECRET_KEY` (required if billing is enabled)
+- `APP_URL` (recommended, e.g. `https://your-domain.vercel.app`)
+
+Optional:
+- `VITE_STRIPE_PUBLISHABLE_KEY` (client-side Stripe usage)
+
+Firebase configuration is currently sourced from `firebase-applet-config.json`.

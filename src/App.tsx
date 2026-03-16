@@ -30,10 +30,11 @@ export default function App() {
 
   const getAuthErrorMessage = (error: unknown) => {
     const typedError = error as AuthError;
+    const currentDomain = window.location.hostname;
 
     switch (typedError.code) {
       case 'auth/unauthorized-domain':
-        return 'This domain is not authorized in Firebase Google sign-in settings. Add your deployed domain to Firebase Authentication > Settings > Authorized domains.';
+        return `Google sign-in is blocked because ${currentDomain} is not authorized in Firebase. Go to Firebase Console > Authentication > Settings > Authorized domains and add: ${currentDomain}`;
       case 'auth/operation-not-supported-in-this-environment':
         return 'Google sign-in is blocked in this browser environment. Please open the app in a regular browser window and try again.';
       case 'auth/popup-closed-by-user':

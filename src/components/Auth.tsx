@@ -7,6 +7,8 @@ interface AuthProps {
 }
 
 export default function Auth({ onLogin, errorMessage }: AuthProps) {
+  const showDomainHelp = Boolean(errorMessage?.includes('not authorized in Firebase'));
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-[24px] sm:rounded-[32px] p-6 sm:p-12 shadow-sm border border-gray-100 flex flex-col items-center text-center">
@@ -28,9 +30,19 @@ export default function Auth({ onLogin, errorMessage }: AuthProps) {
         </button>
 
         {errorMessage && (
-          <p className="mt-4 w-full rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-left text-xs font-medium text-red-700">
-            {errorMessage}
-          </p>
+          <div className="mt-4 w-full rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-left text-xs font-medium text-red-700">
+            <p>{errorMessage}</p>
+            {showDomainHelp && (
+              <a
+                href="https://console.firebase.google.com/"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block font-semibold text-red-800 underline"
+              >
+                Open Firebase Console
+              </a>
+            )}
+          </div>
         )}
 
         <div className="mt-8 pt-8 border-t border-gray-50 w-full">

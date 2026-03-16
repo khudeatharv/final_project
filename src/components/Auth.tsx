@@ -8,7 +8,7 @@ interface AuthProps {
 export default function Auth({ onLogin }: AuthProps) {
   return (
     <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-[32px] p-12 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+      <div className="max-w-md w-full bg-white rounded-[24px] sm:rounded-[32px] p-6 sm:p-12 shadow-sm border border-gray-100 flex flex-col items-center text-center">
         <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mb-8 rotate-3 shadow-lg shadow-indigo-200">
           <Sparkles className="w-8 h-8 text-white" />
         </div>
